@@ -3,27 +3,25 @@ import sys
 
 # Function to send a query and receive a response
 def send_query(server_ip, server_port, domain, query_id, mode):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client_socket.settimeout(5)  # Set timeout for responses
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        client_socket.settimeout(5)  # Set timeout for responses
+        client_socket.connect((server_ip, server_port))
 
-    query = f"0 {domain} {query_id} {mode}"
-    client_socket.sendto(query.encode(), (server_ip, server_port))
+        query = f"0 {domain} {query_id} {mode}"
+        client_socket.sendall(query.encode())
 
-    try:
-        response, _ = client_socket.recvfrom(1024)
-        return response.decode()
-    except socket.timeout:
-        return None  # No response received
+        try:
+            response = client_socket.recv(1024).decode()
+            return response
+        except socket.timeout:
+            return None  # No response received
 
 # Function to resolve domain using iterative or recursive mode
-def resolve_domain(rs_ip, rs_port, domain, mode):
-    query_id = "1234"  # A sample query ID
-    log_file = open("resolved.txt", "a")
-
+def resolve_domain(rs_ip, rs_port, domain, query_id, mode, log_file):
     print(f"\nResolving {domain} using {mode.upper()} mode...")
-    
+
     if mode == "rd":
-        # Recursive: RS handles everything
+        # Recursive mode: RS handles everything
         response = send_query(rs_ip, rs_port, domain, query_id, mode)
         if response:
             print(f"Response: {response}")
@@ -32,7 +30,7 @@ def resolve_domain(rs_ip, rs_port, domain, mode):
             print("Error: No response from RS.")
 
     elif mode == "it":
-        # Iterative: Client follows redirections
+        # Iterative mode: Client follows redirections
         current_server_ip = rs_ip
         current_server_port = rs_port
 
@@ -57,26 +55,38 @@ def resolve_domain(rs_ip, rs_port, domain, mode):
                 break  # Found the IP address
             elif flag == "ns":
                 current_server_ip = parts[2]  # Follow redirection
-                current_server_port = 46000 if current_server_ip == "ts1.com" else 47000  # TS1 or TS2
             elif flag == "nx":
                 print(f"Domain {domain} does not exist.")
                 break
 
-    log_file.close()
-
 # Main function
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python3 client.py <RS_IP> <RS_PORT> <domain>")
+    if len(sys.argv) != 3:
+        print("Usage: python3 client.py <RS_IP> <RS_PORT>")
         sys.exit(1)
 
     rs_ip = sys.argv[1]
     rs_port = int(sys.argv[2])
-    domain = sys.argv[3]
 
-    mode = input("Enter query mode (rd for recursive, it for iterative): ").strip().lower()
-    if mode not in ["rd", "it"]:
-        print("Invalid mode. Use 'rd' or 'it'.")
+    # Read hostnames.txt
+    try:
+        with open("hostnames.txt", "r") as f:
+            domains = [line.strip().split() for line in f.readlines()]
+    except FileNotFoundError:
+        print("Error: hostnames.txt not found.")
         sys.exit(1)
 
-    resolve_domain(rs_ip, rs_port, domain, mode)
+    log_file = open("resolved.txt", "w")  # Overwrite previous results
+    query_id = 1  # Start query ID from 1
+
+    for domain_info in domains:
+        if len(domain_info) != 2:
+            print(f"Skipping malformed entry: {domain_info}")
+            continue
+
+        domain, mode = domain_info
+        resolve_domain(rs_ip, rs_port, domain, str(query_id), mode, log_file)
+        query_id += 1  # Increment query ID
+
+    log_file.close()
+    print("\nAll queries resolved. Check resolved.txt for details.")
