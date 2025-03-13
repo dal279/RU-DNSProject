@@ -14,12 +14,6 @@ def load_database(filename):
 # Initialize RS Server
 def start_rs_server(port):
     database = load_database("rsdatabase.txt")
-
-    # Correctly set the TS1 and TS2 addresses
-    TS1_IP = "localhost"
-    TS1_PORT = 46000
-    TS2_IP = "localhost"
-    TS2_PORT = 47000
     
     # UDP Socket setup
     rs_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
