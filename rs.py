@@ -12,7 +12,7 @@ def load_database(filename):
     return database
 
 # Initialize RS Server
-def start_rs_server(port):
+def start_rs_server(port, ts1_address, ts2_address):
     database = load_database("rsdatabase.txt")
     
     # UDP Socket setup
@@ -38,9 +38,9 @@ def start_rs_server(port):
         else:
             # Determine which TLD server to forward to
             if domain.endswith(".com"):
-                response = f"1 {domain} {TS1_IP} {TS1_PORT} ns"
+                response = f"1 {domain} {ts1_address} {query_id} ns"
             elif domain.endswith(".edu"):
-                response = f"1 {domain} {TS2_IP} {TS2_PORT} ns"
+                response = f"1 {domain} {ts2_address} {query_id} ns"
             else:
                 response = f"1 {domain} 0.0.0.0 {query_id} nx"
         
@@ -54,4 +54,8 @@ def start_rs_server(port):
 # Run the RS server
 if __name__ == "__main__":
     RS_PORT = 45000
-    start_rs_server(RS_PORT)
+    TS1_IP = "localhost"  # Replace with actual IP if needed
+    TS2_IP = "localhost"  # Replace with actual IP if needed
+
+    start_rs_server(RS_PORT, TS1_IP, TS2_IP)
+
