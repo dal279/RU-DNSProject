@@ -1,0 +1,5 @@
+1 www.google.com localhost 46000 ns
+1 princeton.edu localhost 47000 ns
+1 njit.edu localhost 47000 ns
+1 x.ai 45.67.89.103 4 aa
+1 watch.tv 0.0.0.0 5 nx

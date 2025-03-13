@@ -3,18 +3,16 @@ import sys
 
 # Function to send a query and receive a response
 def send_query(server_ip, server_port, domain, query_id, mode):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:  # Use UDP
         client_socket.settimeout(5)  # Set timeout for responses
-        client_socket.connect((server_ip, server_port))
-
         query = f"0 {domain} {query_id} {mode}"
-        client_socket.sendall(query.encode())
+        client_socket.sendto(query.encode(), (server_ip, server_port))
 
         try:
-            response = client_socket.recv(1024).decode()
-            return response
+            response, _ = client_socket.recvfrom(1024)  # Receive UDP response
+            return response.decode()
         except socket.timeout:
-            return None  # No response received
+            return None 
 
 # Function to resolve domain using iterative or recursive mode
 def resolve_domain(rs_ip, rs_port, domain, query_id, mode, log_file):
@@ -33,10 +31,17 @@ def resolve_domain(rs_ip, rs_port, domain, query_id, mode, log_file):
         # Iterative mode: Client follows redirections
         current_server_ip = rs_ip
         current_server_port = rs_port
+        visited_servers = set()  # Track visited servers to prevent loops
 
         while True:
+            if (current_server_ip, current_server_port) in visited_servers:
+                print("Error: Detected redirection loop. Stopping resolution.")
+                break
+
+            visited_servers.add((current_server_ip, current_server_port))
+
             response = send_query(current_server_ip, current_server_port, domain, query_id, mode)
-            
+
             if not response:
                 print("Error: No response received.")
                 break
@@ -54,7 +59,16 @@ def resolve_domain(rs_ip, rs_port, domain, query_id, mode, log_file):
                 print(f"Resolved: {domain} -> {parts[2]}")
                 break  # Found the IP address
             elif flag == "ns":
-                current_server_ip = parts[2]  # Follow redirection
+                next_server_ip = parts[2]
+                next_server_port = int(parts[3])
+
+                # Prevent looping back to the same server
+                if next_server_ip == current_server_ip and next_server_port == current_server_port:
+                    print("Error: Circular redirection detected.")
+                    break
+                
+                current_server_ip = next_server_ip
+                current_server_port = next_server_port
             elif flag == "nx":
                 print(f"Domain {domain} does not exist.")
                 break
