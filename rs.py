@@ -16,14 +16,14 @@ def start_rs_server(port):
     database = load_database("rsdatabase.txt")
 
     # Correctly set the TS1 and TS2 addresses
-    TS1_IP = "localhost"
+    TS1_IP = "ilab1.cs.rutgers.edu"
     TS1_PORT = 46000
-    TS2_IP = "localhost"
+    TS2_IP = "ilab2.cs.rutgers.edu"
     TS2_PORT = 47000
     
     # UDP Socket setup
     rs_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    rs_socket.bind(("localhost", port))
+    rs_socket.bind(("0.0.0.0", port))
     
     print(f"RS Server listening on port {port}")
 
