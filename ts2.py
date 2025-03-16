@@ -16,7 +16,7 @@ def start_ts2_server(port):
     database = load_database("ts2database.txt")
     
     ts2_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    ts2_socket.bind(("localhost", port))
+    ts2_socket.bind(("0.0.0.0", port))
     
     print(f"TS2 Server listening on port {port}")
 
